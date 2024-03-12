@@ -8,6 +8,9 @@ A brief description of what this project does.
 
 Clone the project
 
+```bash
+  git clone https://github.com/ShreyashSalian/01-backend-project.git
+```
 
 
 Go to the project directory
