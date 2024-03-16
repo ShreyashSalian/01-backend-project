@@ -228,4 +228,226 @@ const refreshAccessToken = asyncHandler(async(req,res)=>{
   }
 })
 
-export {registerUser,loginUser,logoutUser,refreshAccessToken}
+const changeCurrentPassword = asyncHandler(async(req,res)=>{
+    try{
+        const {oldPassword,newPassword} = req.body;
+        // if(!(oldPassword,newPassword)){
+
+        // }
+        const user = await User.findById(req.user?._id);
+        if(!user){
+            return new ApiError(401,"No user found");
+        }
+        const passwordCheck = await user.isPasswordCorrect(oldPassword);
+        if(!passwordCheck){
+            return new ApiError(400,"Please enter correct password");
+        }
+        user.password = newPassword;
+        await user.save({
+            validateBeforeSave:false
+        });
+       return res.
+       status(200).json(new ApiResponse(
+        200,{},"Password changed successfully"
+       ))
+
+    }catch(err){
+        return new ApiError(401,error?.message || "Please enter the correct password");
+    }
+})
+
+
+const getCurrentUser = asyncHandler(async(req,res)=>{
+    try{
+        // const user = await User.findById(req.user?._id).select("-password -refreshToken");
+        // if(!user){
+        //     return new ApiError(400,"No user found");
+        // }
+        // return res.status(200).json(new ApiResponse(
+        //     200,
+        //     {
+        //         data:user,
+        //     },
+        //     "User Details"
+        // ))
+        return res.status(200).json(
+            200,req.user,"current user fetched successfully"
+        )
+
+    }catch(err){
+        return new ApiError(500,err?.message || "Not able to get the details of user");
+    }
+})
+
+
+const updateAccount = asyncHandler(async(req,res)=>{
+    try{
+        const {fullName,username} = req.body;
+        if((!fullName || !username)){
+            return new ApiError(400,"All Fields are required");
+        }
+        const user = User.findByIdAndUpdate(req.user?._id,
+            {
+                $et:{
+                    fullName,
+                    username
+                }
+            },
+            {
+                new:true
+            }
+        ).select("-password -refreshToken");
+        return res.status(200).json(
+            200,user,"User details updated successfully"
+        )
+         
+
+
+    }catch(err){
+        return new ApiError(500,err?.message || "Not able to get the details of user");   
+    }
+});
+
+const updateUserAvator = asyncHandler(async(req,res)=>{
+    try{
+        const avatarLocalPath = req.file?.path;
+        if(!avatarLocalPath){
+            return new ApiError(400,"Please upload the avatar");
+        }
+        const avatar = await uploadOnCloudinary(avatarLocalPath);
+        if(!avatar.url){
+            return new ApiError(400,"Error while uploading on avatar");
+        }
+
+       const user = await User.findByIdAndUpdate(req.user?._id,
+        {
+            $set:
+            {
+                avatar:avatar.url
+            },
+        },
+        {
+            new:true
+        }
+        ).select("-password -refreshToken");
+
+        return res.status(200).json(
+            new ApiResponse(200,user,"User avatar updated successfully")
+        )
+    }catch(err){
+        return new ApiError(500,err?.message || "Not able to update the user avatar");   
+    }
+})
+
+const updateCoverImage = asyncHandler(async(req,res)=>{
+    try{
+        const coverImageLocalPath = req.file?.path;
+        if(!coverImageLocalPath){
+            return new ApiError(400,"Please upload the cover image");
+        }
+        const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+        if(!coverImage.url){
+            return new ApiError(400,"Error while uploading on cover image");
+        }
+
+       const user = await User.findByIdAndUpdate(req.user?._id,
+        {
+            $set:
+            {
+                coverImage:coverImage.url
+            },
+        },
+        {
+            new:true
+        }
+        ).select("-password -refreshToken");
+
+        return res.status(200).json(
+            new ApiResponse(200,user,"User cover image updated successfully")
+        )
+    }catch(err){
+        return new ApiError(500,err?.message || "Not able to update the user's cover image");   
+    }
+})
+const getUserChannelProfile = asyncHandler(async(req,res)=>{
+    try{
+        let {username} = req.params;
+        if(!username?.trim()){
+            return new ApiError(400,"username is missing");
+        }
+        const channel = await User.aggregate([
+            {
+                $match:{
+                    username : username?.toLowerCase()
+                }
+            },
+            {
+                $lookup:{
+                    from : "subscriptions",
+                    localField:"_id",
+                    foreignField:"channel",
+                    as:"subscribers"
+                }
+            },
+            {
+                $lookup:{
+                    from : "subscriptions",
+                    localField:"_id",
+                    foreignField:"subscriber",
+                    as:"subscribedTo"
+                }
+            },
+            {
+                $addFields:{
+                    subscriberCount:{
+                        $size:"$subscribers"
+                    },
+                    channelSubscribedToCount:{
+                        $size:"$subscribedTo"
+                    },
+                    isSubscribed:{
+                        $cond:{
+                            if:{
+                                $in : [req.user?._id,"$subscribers.subscriber"]
+                            },
+                            then:true,
+                            else:false
+                        }
+                    }
+                }
+            },{
+                $project:{
+                    fullName:1,
+                    username:1,
+                    subscriberCount:1,
+                    avatar:1,
+                    coverImage:1,
+                    channelSubscribedToCount:1,
+                    isSubscribed:1,
+                }
+            }
+        ]);
+
+        res.status(200).json(
+            200,
+            channel,
+            "The subscriberlist and subscriberToList"
+        )
+
+    }catch(err){
+        return new ApiError(500,err?.message || "Not able to get the user channel details");   
+    }
+})
+
+export {
+    registerUser,
+    loginUser,
+    logoutUser,
+    refreshAccessToken,
+    changeCurrentPassword,
+    getCurrentUser,
+    updateAccount,
+    updateUserAvator,
+    updateCoverImage,
+    getUserChannelProfile
+}
