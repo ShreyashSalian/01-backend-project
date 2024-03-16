@@ -377,11 +377,13 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
         }
         const channel = await User.aggregate([
             {
+                //Used to match the given username with the database--------------
                 $match:{
                     username : username?.toLowerCase()
                 }
             },
             {
+                //Used to join with the subscription table---------------------------
                 $lookup:{
                     from : "subscriptions",
                     localField:"_id",
@@ -390,6 +392,7 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
                 }
             },
             {
+                //Used to join with the subscription table---------------------------
                 $lookup:{
                     from : "subscriptions",
                     localField:"_id",
@@ -398,6 +401,7 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
                 }
             },
             {
+                //Used to count the total number of subscriber, subscribedto
                 $addFields:{
                     subscriberCount:{
                         $size:"$subscribers"
@@ -405,6 +409,7 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
                     channelSubscribedToCount:{
                         $size:"$subscribedTo"
                     },
+                    // Check whether the user is subscribed to channel to.
                     isSubscribed:{
                         $cond:{
                             if:{
@@ -416,6 +421,7 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
                     }
                 }
             },{
+                //Used to display the particular fields.
                 $project:{
                     fullName:1,
                     username:1,
@@ -428,10 +434,13 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
             }
         ]);
 
+        if(!channel?.length){
+            throw new ApiError(404,"The channel does not exit");
+        }
+
+
         res.status(200).json(
-            200,
-            channel,
-            "The subscriberlist and subscriberToList"
+         new ApiResponse(200,channel[0],"The channel list")
         )
 
     }catch(err){
