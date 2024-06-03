@@ -288,7 +288,7 @@ const updateAccount = asyncHandler(async(req,res)=>{
         }
         const user = User.findByIdAndUpdate(req.user?._id,
             {
-                $et:{
+                $set:{
                     fullName,
                     username
                 }
@@ -373,7 +373,7 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
     try{
         let {username} = req.params;
         if(!username?.trim()){
-            return new ApiError(400,"username is missing");
+            return new ApiError(400,"username is missing");//Check username exist or ont
         }
         const channel = await User.aggregate([
             {

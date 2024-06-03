@@ -1,0 +1,38 @@
+version: '3.9'
+
+services:
+  #mongodb services
+  mongo_db:
+    container_name: db_container
+    image: mongo:latest
+    restart: always
+    ports:
+      - 2717:27017
+    volumes:
+      - mongo_db:/data/db
+
+  # api services
+  api:
+    build: .
+    ports:
+      - 4000:4000
+    volumes:
+      - .:/usr/src/app
+    environment:
+      PORT: 4000
+      MONGO_OLD_URL: mongodb+srv://shreyashsalian15:Shreyash225361@cluster0.xjxbjjf.mongodb.net
+      MONGO_URL: mongodb://mongo_db:27017/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.2.2
+      ACCESS_TOKEN_SECRET: 31db80dea9ef56364974de830e504ef1e7203be10eda331c17edce3a4179261d6fa58056876d5af1
+      ACCESS_TOKEN_EXPIRY: 1d
+      REFRESH_TOKEN_SECRET: 3080377b36c326de78421597beb8e7deee2a4342950de523561bfa7443c52cd0dbd33cd010dfa2f8
+      REFRESH_TOKEN_EXPIRY: 10d
+      CLOUDINARY_CLOUD_NAME: dijfyrcli
+      CLOUDINARY_API_KEY: 974128496889157
+      CLOUDINARY_API_SECRET: dA9_8CDooBGChcF-8KQ5JWTMa6k
+      DB_NAME: my_db
+
+    depends_on:
+      - mongo_db
+
+volumes:
+  mongo_db: {}
